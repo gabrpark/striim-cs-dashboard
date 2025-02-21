@@ -124,3 +124,18 @@ export function VercelLogo(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+import Image from 'next/image';
+
+export function StriimLogo({ className, ...props }: { className?: string } & Omit<React.ComponentProps<typeof Image>, 'src' | 'alt' | 'width' | 'height'>) {
+  return (
+    <Image
+      src="/striim-logo.svg"
+      alt="Striim Logo"
+      width={32}
+      height={32}
+      className={className}
+      {...props}
+    />
+  );
+}
