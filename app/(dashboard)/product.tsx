@@ -10,9 +10,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal } from 'lucide-react';
 import { TableCell, TableRow } from '@/components/ui/table';
-import { SelectProduct } from '@/lib/db';
+import { SelectClient } from '@/lib/db';
 import { deleteProduct } from './actions';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
 
 function HealthCircle({ value }: { value: number }) {
   // Ensure value is between 1 and 10
@@ -97,7 +98,7 @@ function formatCurrency(amount: string | number) {
   }).format(num);
 }
 
-export function Product({ product }: { product: SelectProduct }) {
+export function Product({ product }: { product: SelectClient }) {
   return (
     <TableRow>
       {/* <TableCell className="hidden sm:table-cell">
@@ -109,15 +110,25 @@ export function Product({ product }: { product: SelectProduct }) {
           width="64"
         />
       </TableCell> */}
-      <TableCell className="font-medium">{product.name}</TableCell>
+      <TableCell className="font-medium">
+        {product.companyName}
+      </TableCell>
+      <TableCell className="font-medium">
+        <Link
+          href={`/customer/${product.id}`}
+          className="hover:underline text-primary cursor-pointer"
+        >
+          {product.name}
+        </Link>
+      </TableCell>
       <TableCell>
         <HealthCircle value={product.health} />
       </TableCell>
       <TableCell className="hidden md:table-cell">
-        {formatCurrency(product.price)}
+        {formatCurrency(product.arr)}
       </TableCell>
       <TableCell className="hidden md:table-cell">
-        <ScoreDots value={product.stock} />
+        <ScoreDots value={product.csm} />
       </TableCell>
       <TableCell className="hidden md:table-cell">
         {product.availableAt.toLocaleDateString("en-US")}

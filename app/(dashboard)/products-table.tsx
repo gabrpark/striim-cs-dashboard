@@ -16,7 +16,7 @@ import {
   CardTitle
 } from '@/components/ui/card';
 import { Product } from './product';
-import { SelectProduct } from '@/lib/db';
+import { SelectClient } from '@/lib/db';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -38,15 +38,13 @@ function PageNumber({ pageNum, currentPage, onClick }: {
   );
 }
 
-export function ProductsTable({
-  products,
-  offset,
-  totalProducts
-}: {
-  products: SelectProduct[];
+interface ProductsTableProps {
+  products: SelectClient[];
   offset: number;
   totalProducts: number;
-}) {
+}
+
+export function ProductsTable({ products, offset, totalProducts }: ProductsTableProps) {
   let router = useRouter();
   let productsPerPage = 5;
   const currentPage = Math.floor(offset / productsPerPage) + 1;
@@ -103,7 +101,8 @@ export function ProductsTable({
               {/* <TableHead className="hidden w-[100px] sm:table-cell">
                 <span className="sr-only">Image</span>
               </TableHead> */}
-              <TableHead className="w-[200px]">Name</TableHead>
+              <TableHead className="w-[200px]">Company</TableHead>
+              <TableHead className="w-[200px]">Owner</TableHead>
               <TableHead className="w-[100px]">Health</TableHead>
               <TableHead className="hidden md:table-cell w-[150px]">ARR (USD)</TableHead>
               <TableHead className="hidden md:table-cell w-[150px]">
