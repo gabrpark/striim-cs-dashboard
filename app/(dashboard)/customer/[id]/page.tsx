@@ -36,7 +36,7 @@ export default async function CustomerPage({
 	return (
 		<div className="space-y-4">
 			<div className="flex items-center gap-4">
-				<Link href="/">
+				<Link href="/customers">
 					<Button variant="ghost" size="sm">
 						<ChevronLeft className="h-4 w-4 mr-2" />
 						Back
