@@ -111,27 +111,27 @@ export function Product({ product }: { product: SelectClient }) {
         />
       </TableCell> */}
       <TableCell className="font-medium">
-        {product.companyName}
-      </TableCell>
-      <TableCell className="font-medium">
         <Link
           href={`/customer/${product.id}`}
           className="hover:underline text-primary cursor-pointer"
         >
-          {product.name}
+          {product.companyName || 'Not Specified'}
         </Link>
       </TableCell>
+      <TableCell className="font-medium">
+        {product.name || 'Not Specified'}
+      </TableCell>
       <TableCell>
-        <HealthCircle value={product.health} />
+        <HealthCircle value={product.health ?? 0} />
       </TableCell>
       <TableCell className="hidden md:table-cell">
-        {formatCurrency(product.arr)}
+        {product.arr ? formatCurrency(product.arr) : '$0'}
       </TableCell>
       <TableCell className="hidden md:table-cell">
-        <ScoreDots value={product.csm} />
+        <ScoreDots value={product.csm ?? 0} />
       </TableCell>
       <TableCell className="hidden md:table-cell">
-        {product.availableAt.toLocaleDateString("en-US")}
+        {product.availableAt?.toLocaleDateString("en-US")}
       </TableCell>
       <TableCell>
         <DropdownMenu>
