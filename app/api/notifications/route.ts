@@ -10,9 +10,8 @@ export async function GET() {
 
 		return NextResponse.json(allNotifications);
 	} catch (error) {
-		return NextResponse.json(
-			{ error: 'Failed to fetch notifications' },
-			{ status: 500 }
-		);
+		console.error('Error fetching notifications:', error);
+		// Return an empty array instead of an error response
+		return NextResponse.json([]);
 	}
 } 

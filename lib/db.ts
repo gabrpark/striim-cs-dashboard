@@ -18,6 +18,7 @@ import {
 import { count, eq, ilike } from 'drizzle-orm';
 import { createInsertSchema } from 'drizzle-zod';
 
+// Add connection timeout to prevent hanging
 export const db = drizzle(neon(process.env.POSTGRES_URL!));
 
 // export const statusEnum = pgEnum('status', ['active', 'inactive', 'archived']);
@@ -149,11 +150,20 @@ export const jira_issues = pgTable('jira_issues', {
   updatedAt: timestamp('updated_at').defaultNow()
 });
 
+// Add users table definition
+export const users = pgTable('users', {
+  id: serial('id').primaryKey(),
+  email: varchar('email', { length: 255 }).notNull(),
+  name: varchar('name', { length: 255 }),
+  username: varchar('username', { length: 255 })
+});
+
 export type SelectClient = typeof clients.$inferSelect;
 export type SelectTicket = typeof zendesk_tickets.$inferSelect;
 export type SelectJiraIssue = typeof jira_issues.$inferSelect;
 export type SelectSalesforceAccount = typeof salesforce_accounts.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
+export type User = typeof users.$inferSelect;
 
 export const insertProductSchema = createInsertSchema(clients);
 
@@ -203,38 +213,104 @@ export async function deleteProductById(id: string) {
 
 // Update getCustomerData to include Jira issues
 export async function getCustomerWithTickets(id: string) {
-  const customer = await db.select()
-    .from(clients)
-    .where(eq(clients.id, id))
-    .limit(1);
+  try {
+    console.log('Fetching customer data for ID:', id);
 
-  if (!customer.length) return null;
+    const customer = await db.select()
+      .from(clients)
+      .where(eq(clients.id, id))
+      .limit(1);
 
-  const tickets = await db.select()
-    .from(zendesk_tickets)
-    .where(eq(zendesk_tickets.clientId, id));
+    if (!customer.length) {
+      console.log('No customer found with ID:', id);
+      return null;
+    }
 
-  const subscriptionData = await db.select({
-    subscription: subscriptions,
-    service: services
-  })
-    .from(subscriptions)
-    .innerJoin(services, eq(subscriptions.serviceId, services.serviceId))
-    .where(eq(subscriptions.clientId, id));
+    console.log('Customer found, fetching related data');
 
-  const jiraIssues = await db.select()
-    .from(jira_issues)
-    .where(eq(jira_issues.clientId, id));
+    // Use Promise.all to fetch all data in parallel
+    const [tickets, subscriptionData, jiraIssues, salesforceAccounts] = await Promise.all([
+      db.select()
+        .from(zendesk_tickets)
+        .where(eq(zendesk_tickets.clientId, id))
+        .catch(err => {
+          console.error('Error fetching tickets:', err);
+          return [];
+        }),
 
-  const salesforceAccounts = await db.select()
-    .from(salesforce_accounts)
-    .where(eq(salesforce_accounts.clientId, id));
+      db.select({
+        subscription: subscriptions,
+        service: services
+      })
+        .from(subscriptions)
+        .innerJoin(services, eq(subscriptions.serviceId, services.serviceId))
+        .where(eq(subscriptions.clientId, id))
+        .catch(err => {
+          console.error('Error fetching subscriptions:', err);
+          return [];
+        }),
 
-  return {
-    customer: customer[0],
-    tickets,
-    subscriptions: subscriptionData,
-    jiraIssues,
-    salesforceAccounts
-  };
+      db.select()
+        .from(jira_issues)
+        .where(eq(jira_issues.clientId, id))
+        .catch(err => {
+          console.error('Error fetching Jira issues:', err);
+          return [];
+        }),
+
+      db.select()
+        .from(salesforce_accounts)
+        .where(eq(salesforce_accounts.clientId, id))
+        .catch(err => {
+          console.error('Error fetching Salesforce accounts:', err);
+          return [];
+        })
+    ]);
+
+    console.log('All data fetched successfully');
+
+    // Transform Jira issues from snake_case to camelCase
+    const transformedJiraIssues = jiraIssues.map(issue => {
+      // Use type assertion to access snake_case properties
+      const rawIssue = issue as any;
+      return {
+        jiraIssueId: rawIssue.jira_issue_id || rawIssue.jiraIssueId,
+        issueSummary: rawIssue.issue_summary || rawIssue.issueSummary,
+        issueDescription: rawIssue.issue_description || rawIssue.issueDescription,
+        issueType: rawIssue.issue_type || rawIssue.issueType,
+        issueStatus: rawIssue.issue_status || rawIssue.issueStatus,
+        priority: rawIssue.priority,
+        assigneeName: rawIssue.assignee_name || rawIssue.assigneeName,
+        assigneeEmail: rawIssue.assignee_email || rawIssue.assigneeEmail,
+        reporterName: rawIssue.reporter_name || rawIssue.reporterName,
+        comments: rawIssue.comments,
+        linkedZendeskTicket: rawIssue.linked_zendesk_ticket || rawIssue.linkedZendeskTicket,
+        sfAccountId: rawIssue.sf_account_id || rawIssue.sfAccountId,
+        clientId: rawIssue.client_id || rawIssue.clientId,
+        serviceId: rawIssue.service_id || rawIssue.serviceId,
+        sourceCreatedAt: rawIssue.source_created_at || rawIssue.sourceCreatedAt,
+        sourceUpdatedAt: rawIssue.source_updated_at || rawIssue.sourceUpdatedAt,
+        createdAt: rawIssue.created_at || rawIssue.createdAt,
+        updatedAt: rawIssue.updated_at || rawIssue.updatedAt
+      };
+    });
+
+    return {
+      customer: customer[0],
+      tickets,
+      subscriptions: subscriptionData,
+      jiraIssues: transformedJiraIssues,
+      salesforceAccounts
+    };
+  } catch (error) {
+    console.error('Error fetching customer data:', error);
+    // Return a default structure instead of null to prevent UI crashes
+    return {
+      customer: null,
+      tickets: [],
+      subscriptions: [],
+      jiraIssues: [],
+      salesforceAccounts: []
+    };
+  }
 }

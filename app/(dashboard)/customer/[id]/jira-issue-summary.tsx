@@ -1,26 +1,29 @@
 'use client';
 
-import React from 'react';
-import { Loader2, ChevronDown, ChevronRight, RefreshCw } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Loader2, RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { format } from 'date-fns';
+import ReactMarkdown from 'react-markdown';
 
-type TicketSummaryProps = {
-	ticketId: string;
-	ticketType?: string;
+interface JiraIssueSummaryProps {
+	issueId: string;
+	issueType?: string;
 	includeDetails?: boolean;
 	forceRegenerate?: boolean;
-};
+}
 
-export default function TicketSummary({
-	ticketId,
-	ticketType = 'zendesk_ticket',
+export default function JiraIssueSummary({
+	issueId,
+	issueType = 'jira_issue',
 	includeDetails = false,
 	forceRegenerate = false
-}: TicketSummaryProps) {
-	const [summary, setSummary] = React.useState<string>('');
-	const [isLoading, setIsLoading] = React.useState(false);
-	const [error, setError] = React.useState<string>('');
-	const [isExpanded, setIsExpanded] = React.useState(false);
-	const [lastGenerated, setLastGenerated] = React.useState<string | null>(null);
+}: JiraIssueSummaryProps) {
+	const [summary, setSummary] = useState<string>('');
+	const [isLoading, setIsLoading] = useState(false);
+	const [error, setError] = useState<string>('');
+	const [isExpanded, setIsExpanded] = useState(false);
+	const [lastGenerated, setLastGenerated] = useState<string | null>(null);
 
 	function formatDate(dateString: string) {
 		return new Date(dateString).toLocaleString('en-US', {
@@ -34,6 +37,7 @@ export default function TicketSummary({
 
 	async function fetchSummary(force = false) {
 		console.log('fetchSummary called with force:', force); // Debug log
+		console.log('Issue ID #:', issueId); // Debug log for issue ID
 
 		if (!force && isExpanded) {
 			console.log('Collapsing expanded summary'); // Debug log
@@ -47,7 +51,7 @@ export default function TicketSummary({
 		try {
 			console.log('Checking for existing summary...'); // Debug log
 			const checkResponse = await fetch(
-				`http://localhost:8000/api/v1/summaries/check/${ticketType}/${ticketId}`,
+				`http://localhost:8000/api/v1/summaries/check/${issueType}/${issueId}`,
 				{
 					headers: {
 						'Accept': 'application/json'
@@ -75,7 +79,7 @@ export default function TicketSummary({
 
 			console.log('Generating new summary...'); // Debug log
 			const response = await fetch(
-				`http://localhost:8000/api/v1/summaries/individual/${ticketType}/${ticketId}`,
+				`http://localhost:8000/api/v1/summaries/individual/${issueType}/${issueId}`,
 				{
 					headers: {
 						'Accept': 'application/json'
@@ -112,7 +116,7 @@ export default function TicketSummary({
 			setIsExpanded(true);
 		} catch (error) {
 			console.error('Error fetching summary:', error);
-			setError(error instanceof Error ? error.message : 'Failed to load ticket summary. Please try again.');
+			setError(error instanceof Error ? error.message : 'Failed to load issue summary. Please try again.');
 		} finally {
 			setIsLoading(false);
 		}
@@ -137,6 +141,7 @@ export default function TicketSummary({
 				<button
 					onClick={() => {
 						console.log('Button clicked, isExpanded:', isExpanded); // Debug log
+						console.log('Issue ID being displayed:', issueId); // Debug log for issue ID
 						fetchSummary();
 					}}
 					className="text-left font-medium hover:text-primary flex items-center gap-2 flex-1"
@@ -148,7 +153,7 @@ export default function TicketSummary({
 						) : (
 							<ChevronRight className="h-4 w-4" />
 						)}
-						<span>{ticketType === 'zendesk_ticket' ? 'Ticket' : 'Issue'} #{ticketId}</span>
+						<span>Issue {issueId}</span>
 					</div>
 					{isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
 				</button>
