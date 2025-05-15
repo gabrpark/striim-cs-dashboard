@@ -75,12 +75,7 @@ export default async function CustomerPage({
 
 				<Card>
 					<CardHeader>
-						<div className="space-y-1">
-							<CardTitle>{customer.companyName || 'No Company Name'}</CardTitle>
-							<div className="text-sm text-muted-foreground">
-								Owner: {customer.name || 'No Owner'}
-							</div>
-						</div>
+						<CardTitle>{customer.companyName || 'No Company Name'}</CardTitle>
 					</CardHeader>
 					<CardContent className="space-y-6">
 						<div>
@@ -137,6 +132,18 @@ export default async function CustomerPage({
 
 				<Card>
 					<CardHeader>
+						<CardTitle>Salesforce Accounts</CardTitle>
+					</CardHeader>
+					<CardContent className="space-y-6">
+						<SalesforceAccountsSummary customerId={id} accounts={salesforceAccounts} />
+						<div className="border-t pt-4">
+							<SalesforceAccounts accounts={salesforceAccounts} />
+						</div>
+					</CardContent>
+				</Card>
+
+				<Card>
+					<CardHeader>
 						<CardTitle>Zendesk Tickets</CardTitle>
 					</CardHeader>
 					<CardContent className="space-y-6">
@@ -163,18 +170,6 @@ export default async function CustomerPage({
 						<JiraIssuesSummary customerId={id} issues={jiraIssues} />
 						<div className="border-t pt-4">
 							<JiraIssues issues={jiraIssues} />
-						</div>
-					</CardContent>
-				</Card>
-
-				<Card>
-					<CardHeader>
-						<CardTitle>Salesforce Accounts</CardTitle>
-					</CardHeader>
-					<CardContent className="space-y-6">
-						<SalesforceAccountsSummary customerId={id} accounts={salesforceAccounts} />
-						<div className="border-t pt-4">
-							<SalesforceAccounts accounts={salesforceAccounts} />
 						</div>
 					</CardContent>
 				</Card>

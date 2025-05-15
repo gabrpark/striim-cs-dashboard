@@ -79,12 +79,12 @@ export default function SalesforceAccountsSummary({ customerId, accounts }: Sale
 			// Get all account IDs for this customer
 			const accountIds = accounts.map(account => account.accountId);
 
-			// Try to fetch from API
-			let url = `http://localhost:8000/api/v1/summaries/group/all_accounts?customer_id=${customerId}`;
+			// Try to fetch from API using the Next.js API route
+			let url = `/api/v1/summaries/group/all_accounts?customer_id=${customerId}`;
 
-			// Only add force=true if explicitly requested
+			// Only add force_regenerate=true if explicitly requested
 			if (force) {
-				url += '&force=true';
+				url += '&force_regenerate=true';
 			}
 
 			// Add account IDs to the query to check if they're already covered
@@ -92,16 +92,53 @@ export default function SalesforceAccountsSummary({ customerId, accounts }: Sale
 				url += `&account_ids=${accountIds.join(',')}`;
 			}
 
+			console.log('Fetching accounts summary from:', url);
 			const response = await fetch(url);
+
 			if (!response.ok) {
-				throw new Error('Failed to fetch accounts summary');
+				const errorText = await response.text();
+				console.error('Error response:', {
+					status: response.status,
+					statusText: response.statusText,
+					body: errorText
+				});
+
+				// Try to parse the error response as JSON
+				try {
+					const errorJson = JSON.parse(errorText);
+					setError(errorJson.error || `Failed to fetch accounts summary: ${response.statusText}`);
+					throw new Error(errorJson.error || `Failed to fetch accounts summary: ${response.statusText}`);
+				} catch (parseError) {
+					throw new Error(`Failed to fetch accounts summary: ${response.status} ${response.statusText}`);
+				}
 			}
 
 			const data = await response.json();
+			console.log('Received summary data:', data);
 
-			// Just use the summary as is
-			setSummary(data.summary);
-			setLastGenerated(data.last_generated);
+			// Handle different response formats
+			if (data.summary) {
+				setSummary(data.summary);
+			} else if (data.content) {
+				setSummary(data.content);
+			} else if (data.detail) {
+				// Handle FastAPI error response format
+				throw new Error(data.detail);
+			} else if (typeof data === 'string') {
+				// Handle case where the response is just a string
+				setSummary(data);
+			} else {
+				throw new Error('No summary content found in response');
+			}
+
+			// Handle different timestamp field names
+			if (data.last_generated) {
+				setLastGenerated(data.last_generated);
+			} else if (data.last_generated_at) {
+				setLastGenerated(data.last_generated_at);
+			} else if (data.timestamp) {
+				setLastGenerated(data.timestamp);
+			}
 		} catch (err) {
 			console.error('Error fetching accounts summary:', err);
 			setError(err instanceof Error ? err.message : 'An error occurred');
